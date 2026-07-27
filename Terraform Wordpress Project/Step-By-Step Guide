@@ -1,0 +1,233 @@
+# Step 1: Creating the project folder 
+
+On VSCode, enter the following:
+mkdir terraform-wordpress
+cd terraform-wordpress
+
+
+# Step 2: Create the following files 
+
+Either create manually or type in the terminal touch
+main.tf, variables.tf, outputs.tf, userdata.sh, terraform.tfvars, .gitignore
+
+
+
+# Step 3: Create the AWS Provider
+
+Within main.tf, enter in the following:
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.region
+}
+
+
+# Step 4: Create Variables
+
+In the variables.tf file, enter the following:
+
+variable "region" {
+  default = "eu-west-2"
+}
+
+variable "instance_type" {
+  default = "t2.micro"
+}
+
+variable "key_name" {
+  description = "AWS Key Pair"
+}
+
+variable "ami" {
+  default = "ami-0fc32db49bc1b6c2a"
+}
+
+
+# Step 5: Create terraform.tfvars
+
+Enter in the following command into your terraform.tfvars file:
+key_name = "YourKeyPairName"
+Fill in the key pair with your EC2 key pair.
+
+
+# Step 6: Creating a security group on Terraform
+
+On main.tf file, enter in the following which will allow for SSH,HTTP and HTTPS permissions:
+
+resource "aws_security_group" "wordpress_sg" {
+
+  name = "wordpress-security-group"
+
+  ingress {
+
+    from_port = 22
+
+    to_port = 22
+
+    protocol = "tcp"
+
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+  ingress {
+
+    from_port = 80
+
+    to_port = 80
+
+    protocol = "tcp"
+
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+  ingress {
+
+    from_port = 443
+
+    to_port = 443
+
+    protocol = "tcp"
+
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+  egress {
+
+    from_port = 0
+
+    to_port = 0
+
+    protocol = "-1"
+
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+}
+
+
+# Step 7: Time to create an EC2 instance using Terraform
+
+Within the main.tf file, enter the following resource block:
+
+resource "aws_instance" "wordpress" {
+
+  ami                    = var.ami
+
+  instance_type          = var.instance_type
+
+  key_name               = var.key_name
+
+  vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
+
+  user_data = file("userdata.sh")
+
+  tags = {
+
+    Name = "Terraform-WordPress"
+
+  }
+
+}
+
+This line user_data = file("userdata.sh") = Terraform will automatically upload the script.
+
+
+# Step 8: Create the User Data Script using terraform which will enable Wordpress, Apache and PHP:
+
+In the userdata.sh file, enter in the following:
+
+#!/bin/bash
+
+apt update -y
+
+apt install apache2 -y
+
+apt install php php-mysql libapache2-mod-php wget unzip -y
+
+systemctl enable apache2
+
+systemctl start apache2
+
+cd /tmp
+
+wget https://wordpress.org/latest.tar.gz
+
+tar -xzf latest.tar.gz
+
+cp -r wordpress/* /var/www/html/
+
+chown -R www-data:www-data /var/www/html/
+
+chmod -R 755 /var/www/html/
+
+systemctl restart apache2
+
+
+# Step 9: Create the Outputs
+
+Within the outputs.tf file, enter the following:
+
+output "public_ip" {
+
+  value = aws_instance.wordpress.public_ip
+
+}
+
+output "public_dns" {
+
+  value = aws_instance.wordpress.public_dns
+
+}
+
+
+# Step 10: Time to initialise Terraform
+
+In the terminal, Run terraform init to initialise.
+
+
+# Step 11: Check the plan
+
+In the terminal, Run terraform plan which should display 2 to add.
+No errors should mean it is in a state to be applied.
+
+
+# Step 12: Time to Deploy all that was created
+
+In the terminal, Run terraform apply and then type in yes.
+May take some time to create everything.
+
+
+# Step 13: Get the Public IP
+
+In the terminal, run terraform output.
+Should display your Public IP.
+
+
+# Step 14: Check Wordpress
+
+Enter in the following link onto a browser: http://YOUR_PUBLIC_IP
+This should showcase the Wordpress setup page.
+
+
+# Step 15: Verification
+
+Run terraform state list
+Expected outputs should be: aws_instance.wordpress, aws_security_group.wordpress_sg
+
+
+# Step 16: Destroy resources
+
+In order to avoid incurring any charges from AWS, run the command: terraform destroy.
+Confirm this to terminate all created resources.
