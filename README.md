@@ -105,6 +105,11 @@ What are modules and what defines a good module covering best practices.
 
 
 **Deploying Wordpress using Terraform**:
+
 This consisted of deploying a full wordpress stack onto AWS which included the EC2 instance, Security groups, User data, endpoint that works and finally provisioning all resources through Terraform.
 (Head to Terraform Wordpress Project to find a step by step guide, screenshots and the code utilised.)
 
+
+**Deploying an EC2 Instance using Cloud-init**
+
+This project consisted of me writing a cloud-init YAML file, installing and configure software such as NGINX or Apache, Passing cloud-init into the EC2 instance through Terraform. Finally, need to ensure that the instance comes online fully configured solely through Terraform.
